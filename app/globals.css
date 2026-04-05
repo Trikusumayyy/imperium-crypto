@@ -1,26 +1,115 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+/* ===============================
+   GLOBAL BASE
+   =============================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Base */
+  --bg-primary: #0b0b0b;     /* main black */
+  --bg-secondary: #111111;   /* section separation halus */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Text */
+  --text-primary: #f5f5f4;   /* white premium */
+  --text-muted: #a1a1aa;     /* abu elegan */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* Gold Accent */
+  --gold-primary: #d4af37;   /* classic gold */
+  --gold-soft: #b8962e;
+  --gold-dark: #8c7321;
 
+  /* Border & line */
+  --border-subtle: rgba(212, 175, 55, 0.15);
+}
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  background: radial-gradient(circle,rgba(66, 58, 31, 1) 0%, rgba(0, 0, 0, 1) 57%, rgba(0, 0, 0, 1) 100%);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* SEMUA SECTION SAMA WARNA */
+
+/* Optional: pemisah section super halus */
+
+/* ===============================
+   UTILITIES
+   =============================== */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+h1, h2, h3, h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.text-gold {
+  color: var(--gold-primary);
+}
+
+.border-gold {
+  border-color: var(--gold-primary);
+}
+
+.bg-gold {
+  background-color: var(--gold-primary);
+  color: #0b0b0b;
+}
+
+
+/* ===============================
+   SELECTION
+   =============================== */
+
+::selection {
+  background-color: #0284c7;
+  color: white;
+}
+
+/* ===============================
+   SCROLLBAR
+   =============================== */
+
+::selection {
+  background-color: var(--gold-primary);
+  color: #0b0b0b;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold-dark);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-primary);
+}
+
+/* ===============================
+   FOCUS
+   =============================== */
+
+:focus-visible {
+  outline: 2px solid var(--gold-primary);
+  outline-offset: 2px;
 }
