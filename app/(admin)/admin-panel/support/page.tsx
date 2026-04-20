@@ -25,7 +25,8 @@ interface FAQ {
 interface QueryResult {
   data: unknown;
   error: unknown;
-  eq: (col: string, val: any) => QueryResult;
+  eq: (col: string, val: string | number | boolean) => QueryResult;
+  select: (columns: string) => QueryResult;
   single: () => Promise<QueryResult>;
   order: (col: string, opt: unknown) => QueryResult;
   insert: (val: unknown[]) => Promise<QueryResult>;
@@ -79,8 +80,8 @@ export default function AdminSupportManager() {
 
   const handleUpdateConfig = async () => {
     setIsSaving(true)
-    const { error } = await (db.from('support_config').update(config).eq('id', 1) as unknown as Promise<{ error: any }>)
-    if (error) alert(error.message)
+    const { error } = await (db.from('support_config').update(config).eq('id', 1) as unknown as Promise<{ error: Error | null }>)
+    if (error) alert((error as Error).message)
     else alert('Kontak Support Berhasil Diperbarui!')
     setIsSaving(false)
   }
@@ -88,20 +89,20 @@ export default function AdminSupportManager() {
   const handleAddFaq = async () => {
     if (!newFaq.question || !newFaq.answer) return
     setIsSaving(true)
-    const { error } = await (db.from('support_faqs').insert([newFaq]) as unknown as Promise<{ error: any }>)
+    const { error } = await (db.from('support_faqs').insert([newFaq]) as unknown as Promise<{ error: Error | null }>)
     if (!error) {
       setShowFaqModal(false)
       setNewFaq({ question: '', answer: '' })
       fetchData()
     } else {
-      alert(error.message)
+      alert((error as Error).message)
     }
     setIsSaving(false)
   }
 
   const handleDeleteFaq = async (id: string) => {
     if (!confirm('Hapus FAQ ini?')) return
-    const { error } = await (db.from('support_faqs').delete().eq('id', id) as unknown as Promise<{ error: any }>)
+    const { error } = await (db.from('support_faqs').delete().eq('id', id) as unknown as Promise<{ error: Error | null }>)
     if (!error) fetchData()
   }
 

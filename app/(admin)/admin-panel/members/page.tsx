@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   RefreshCw, Eye, X, Trash2, Search, PlusCircle, CheckSquare, Square, 
-  MessageSquare, ShieldCheck, Mail, User, Smartphone, Clock, UserMinus
+  MessageSquare, Mail, User, Smartphone, UserMinus
 } from 'lucide-react'
 
 interface Profile {
@@ -26,23 +26,22 @@ export default function ManageMembers() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const fetchMembers = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.from('profiles') as any)
+    const { data, error } = await (supabase.from('profiles') as unknown as { select: (col: string) => { order: (col: string, opt: unknown) => Promise<{ data: Profile[] | null; error: unknown }> } })
       .select('*')
       .order('created_at', { ascending: false })
     if (error) return []
     return (data as Profile[]) || []
   }, [])
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setLoading(true)
     const data = await fetchMembers()
     setMembers(data)
     setSelectedIds([])
     setLoading(false)
-  }
+  }, [fetchMembers])
 
-  useEffect(() => { refreshData() }, [fetchMembers])
+  useEffect(() => { refreshData() }, [fetchMembers, refreshData])
 
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredMembers.length) setSelectedIds([])
@@ -57,15 +56,15 @@ export default function ManageMembers() {
     if (!confirm(`Hapus ${ids.length > 1 ? ids.length + ' member' : 'member ini'} secara permanen?`)) return
     setIsProcessing(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('profiles') as any).delete().in('id', ids)
+      const { error } = await (supabase.from('profiles') as unknown as { delete: () => { in: (col: string, vals: string[]) => Promise<{ error: Error | null }> } }).delete().in('id', ids)
       if (error) throw error
       setMembers(prev => prev.filter(m => !ids.includes(m.id)))
       setSelectedIds([])
       setSelectedMember(null)
       alert('Berhasil dihapus.')
-    } catch (err: any) {
-      alert(`Gagal hapus: ${err.message}`)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Gagal hapus: ${errMsg}`)
     } finally {
       setIsProcessing(false)
     }
@@ -76,12 +75,9 @@ export default function ManageMembers() {
     try {
       const expiryDate = new Date()
       expiryDate.setDate(expiryDate.getDate() + 365)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('profiles') as any).update({ plan: 'vip', plan_status: 'vip' }).eq('id', member.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('data_member_vip') as any).delete().eq('id_user_auth', member.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('data_member_vip') as any).insert([{
+      await (supabase.from('profiles') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } }).update({ plan: 'vip', plan_status: 'vip' }).eq('id', member.id)
+      await (supabase.from('data_member_vip') as unknown as { delete: () => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } }).delete().eq('id_user_auth', member.id)
+      await (supabase.from('data_member_vip') as unknown as { insert: (objs: unknown[]) => Promise<{ error: Error | null }> }).insert([{
         id_user_auth: member.id,
         email_member: member.email,
         nama_paket: 'Paket 1 Tahun',
@@ -93,8 +89,9 @@ export default function ManageMembers() {
       setMembers(prev => prev.map(m => m.id === member.id ? updatedData : m))
       setSelectedMember(updatedData)
       alert('Berhasil Upgrade/Perpanjang!')
-    } catch (err: any) {
-      alert(`Error: ${err.message}`)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Error: ${errMsg}`)
     } finally {
       setIsProcessing(false)
     }
@@ -106,19 +103,18 @@ export default function ManageMembers() {
     setIsProcessing(true)
     try {
       // 1. Balikin ke plan free di profiles
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('profiles') as any).update({ plan: 'free', plan_status: 'free' }).eq('id', member.id)
+      await (supabase.from('profiles') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } }).update({ plan: 'free', plan_status: 'free' }).eq('id', member.id)
       
       // 2. Set nonaktif di data_member_vip
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('data_member_vip') as any).update({ status_aktif: 'nonaktif' }).eq('id_user_auth', member.id)
+      await (supabase.from('data_member_vip') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } }).update({ status_aktif: 'nonaktif' }).eq('id_user_auth', member.id)
 
       const updatedData = { ...member, plan: 'free', plan_status: 'free' }
       setMembers(prev => prev.map(m => m.id === member.id ? updatedData : m))
       setSelectedMember(updatedData)
       alert('Akses VIP berhasil dicabut.')
-    } catch (err: any) {
-      alert(`Error: ${err.message}`)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Error: ${errMsg}`)
     } finally {
       setIsProcessing(false)
     }

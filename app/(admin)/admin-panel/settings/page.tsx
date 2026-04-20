@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
-  Shield, Bell, Lock, Globe, Save, LogOut, Smartphone, Mail, RefreshCw 
+  Bell, Lock, Globe, LogOut, Smartphone, Mail, RefreshCw 
 } from 'lucide-react'
 
 export default function AdminSettings() {
@@ -101,7 +101,7 @@ export default function AdminSettings() {
   )
 }
 
-function SettingItem({ icon, title, value, isLink }: { icon: any, title: string, value: string, isLink?: boolean }) {
+function SettingItem({ icon, title, value, isLink }: { icon: ReactNode, title: string, value: string, isLink?: boolean }) {
   return (
     <div className="flex items-center justify-between p-4 hover:bg-neutral-800/40 transition-all">
       <div className="flex items-center gap-4">
@@ -116,14 +116,14 @@ function SettingItem({ icon, title, value, isLink }: { icon: any, title: string,
   )
 }
 
-function ToggleItem({ icon, title, desc, dbField }: { icon: any, title: string, desc: string, dbField: string }) {
+function ToggleItem({ icon, title, desc, dbField }: { icon: ReactNode, title: string, desc: string, dbField: string }) {
   const [active, setActive] = useState(false)
   const [syncing, setSyncing] = useState(false)
 
   // Load status awal
   useEffect(() => {
     const getSetting = async () => {
-      const { data } = await (supabase.from('admin_settings') as any).select(dbField).eq('id', 1).single()
+      const { data } = await (supabase.from('admin_settings') as unknown as { select: (field: string) => { eq: (col: string, val: number) => { single: () => Promise<{ data: Record<string, boolean> | null }> } } }).select(dbField).eq('id', 1).single()
       if (data) setActive(data[dbField])
     }
     getSetting()
@@ -134,7 +134,7 @@ function ToggleItem({ icon, title, desc, dbField }: { icon: any, title: string, 
     setActive(newState) // Optimistic UI
     setSyncing(true)
     
-    const { error } = await (supabase.from('admin_settings') as any)
+    const { error } = await (supabase.from('admin_settings') as unknown as { update: (obj: Record<string, boolean>) => { eq: (col: string, val: number) => Promise<{ error: Error | null }> } })
       .update({ [dbField]: newState })
       .eq('id', 1)
 

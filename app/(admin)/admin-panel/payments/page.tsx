@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
-  CheckCircle2, XCircle, Clock, Wallet, 
+  CheckCircle2, Wallet, 
   ExternalLink, Search, RefreshCw
 } from 'lucide-react'
 
@@ -21,23 +21,19 @@ interface Payment {
 
 export default function PaymentAdmin() {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'pending' | 'success' | 'all'>('pending')
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   const fetchPayments = useCallback(async () => {
-    setLoading(true)
     // Berikan tipe data eksplisit pada query select
-    const { data, error } = await supabase
-      .from('data_pembayaran')
+    const { data, error } = await (supabase.from('data_pembayaran') as unknown as { select: (col: string) => { order: (col: string, opt: unknown) => Promise<{ data: Payment[] | null; error: unknown }> } })
       .select('*')
       .order('created_at', { ascending: false })
     
     if (!error && data) {
-      setPayments(data as unknown as Payment[])
+      setPayments(data)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => { fetchPayments() }, [fetchPayments])
@@ -51,21 +47,21 @@ export default function PaymentAdmin() {
       expiryDate.setDate(expiryDate.getDate() + 365)
 
       // 1. Update Status Pembayaran (Cast ke any hanya pada .from untuk bypass schema)
-      const { error: payErr } = await (supabase.from('data_pembayaran') as any)
+      const { error: payErr } = await (supabase.from('data_pembayaran') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
         .update({ status_pembayaran: 'success' })
         .eq('id', pay.id)
       if (payErr) throw payErr
 
       // 2. Update Plan di Profiles
-      const { error: profErr } = await (supabase.from('profiles') as any)
+      const { error: profErr } = await (supabase.from('profiles') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
         .update({ plan: 'vip', plan_status: 'vip' })
         .eq('id', pay.id_user_auth)
       if (profErr) throw profErr
 
       // 3. Sync ke Data Member VIP
-      await (supabase.from('data_member_vip') as any).delete().eq('id_user_auth', pay.id_user_auth)
+      await (supabase.from('data_member_vip') as unknown as { delete: () => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } }).delete().eq('id_user_auth', pay.id_user_auth)
       
-      const { error: vipErr } = await (supabase.from('data_member_vip') as any)
+      const { error: vipErr } = await (supabase.from('data_member_vip') as unknown as { insert: (objs: unknown[]) => Promise<{ error: Error | null }> })
         .insert([{
           id_user_auth: pay.id_user_auth,
           email_member: pay.email_member,
@@ -78,8 +74,9 @@ export default function PaymentAdmin() {
 
       alert('Pembayaran Berhasil Dikonfirmasi!')
       fetchPayments()
-    } catch (err: any) {
-      alert(`Gagal: ${err.message}`)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Gagal: ${errMsg}`)
     } finally {
       setProcessingId(null)
     }
@@ -87,7 +84,7 @@ export default function PaymentAdmin() {
 
   const handleReject = async (id: string) => {
     if (!confirm('Tolak pembayaran ini?')) return
-    const { error } = await (supabase.from('data_pembayaran') as any)
+    const { error } = await (supabase.from('data_pembayaran') as unknown as { update: (obj: Record<string, string>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
       .update({ status_pembayaran: 'failed' })
       .eq('id', id)
     if (!error) fetchPayments()

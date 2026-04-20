@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   RefreshCw, 
@@ -25,25 +25,32 @@ export default function PricingEditor() {
   const [editModal, setEditModal] = useState<PaketVIP | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const fetchPlans = async () => {
-    setLoading(true)
+  const fetchPlans = useCallback(async () => {
     // FIX ERROR: Cast tabel ke any di awal panggil
-    const { data, error } = await (supabase.from('data_paket_vip') as any)
+    const { data, error } = await (supabase.from('data_paket_vip') as unknown as { select: (col: string) => { order: (col: string, opt: unknown) => Promise<{ data: PaketVIP[] | null; error: unknown }> } })
       .select('*')
       .order('harga', { ascending: true })
     
-    if (!error) setPlans(data)
-    setLoading(false)
-  }
+    if (!error && data) return data
+    return []
+  }, [])
 
-  useEffect(() => { fetchPlans() }, [])
+  useEffect(() => { 
+    const load = async () => {
+      setLoading(true)
+      const data = await fetchPlans()
+      setPlans(data)
+      setLoading(false)
+    }
+    load()
+  }, [fetchPlans])
 
   const handleUpdate = async () => {
     if (!editModal) return
     setSaving(true)
     
     // FIX ERROR: Cast tabel ke any untuk bypass error 'never' pada update
-    const { error } = await (supabase.from('data_member_vip') as any)
+    const { error } = await (supabase.from('data_paket_vip') as unknown as { update: (obj: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
       .update({
         nama_paket: editModal.nama_paket,
         harga: editModal.harga,
@@ -54,7 +61,8 @@ export default function PricingEditor() {
     
     if (!error) {
       setEditModal(null)
-      fetchPlans()
+      const data = await fetchPlans()
+      setPlans(data)
     }
     setSaving(false)
   }
