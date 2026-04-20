@@ -33,7 +33,7 @@ export default function LoginPage() {
       if (error) throw error
 
       if (data?.user) {
-        // Ambil data plan dengan type safety
+        // Ambil data plan dengan type safety dari tabel profiles
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('plan')
@@ -42,12 +42,13 @@ export default function LoginPage() {
 
         if (profileError) throw profileError
 
+        // Casting tipe data secara aman
         const userProfile = profile as UserProfile
 
         // Sinkronkan session ke server
         router.refresh()
         
-        // Jeda biar cookie nempel sempurna
+        // Jeda sebentar biar cookie nempel sempurna sebelum redirect
         setTimeout(() => {
           if (userProfile?.plan === 'admin') {
             window.location.href = '/admin-panel'
@@ -56,8 +57,12 @@ export default function LoginPage() {
           }
         }, 800)
       }
-    } catch (error: any) {
-      setErrorMsg('Akses Ditolak: Periksa kembali email & password kamu.')
+    } catch (err: unknown) {
+      // Menangani error tanpa menggunakan 'any'
+      const errorResponse = err as { message?: string }
+      console.error('FULL ERROR DEBUG:', errorResponse)
+      
+      setErrorMsg(errorResponse.message || 'Akses Ditolak: Periksa koneksi atau kredensial.')
       setLoading(false)
     }
   }
@@ -133,6 +138,7 @@ export default function LoginPage() {
             )}
 
             <button
+              type="submit"
               disabled={loading}
               className="group relative w-full flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-yellow-400 to-amber-500 p-4 font-bold text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:opacity-50 overflow-hidden"
             >

@@ -25,29 +25,35 @@ export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname()
   const [userData, setUserData] = useState({ email: '', name: '' })
 
-  // Ambil Data User/Admin yang sedang login
-  useEffect(() => {
+useEffect(() => {
     async function getUser() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile } = await (supabase.from('profiles') as any)
+        // Query tetap pake Database type yang udah ada di supabase.ts
+        const { data: profile } = await supabase
+          .from('profiles')
           .select('full_name')
           .eq('id', user.id)
           .single()
         
+        // FIX: Casting ke object yang punya full_name biar TS gak 'never'
+        const profileData = profile as { full_name: string | null } | null
+        
         setUserData({
           email: user.email || '',
-          name: profile?.full_name || user.email?.split('@')[0] || 'User'
+          name: profileData?.full_name || user.email?.split('@')[0] || 'User'
         })
       }
     }
     getUser()
   }, [])
 
-  // Menu List
+  // ... (Menu List & logic logout tetep sama)
+
   const userMenus = [
     { name: 'Dash', href: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'VIP', href: '/dashboard/upgrade', icon: <Crown size={20} /> },
+    { name: 'Konfirmasi Pembayaran', href: '/dashboard/upgrade/confirm', icon: <Crown size={20} /> },
     { name: 'Group', href: '/dashboard/group', icon: <MessageSquare size={20} /> },
     { name: 'Profil', href: '/dashboard/profile', icon: <User size={20} /> },
     { name: 'Support', href: '/dashboard/support', icon: <HeadphonesIcon size={20} /> },
@@ -58,7 +64,7 @@ export default function Sidebar({ role }: SidebarProps) {
     { name: 'Members', href: '/admin-panel/members', icon: <Users size={20} /> },
     { name: 'Payment', href: '/admin-panel/payments', icon: <CreditCard size={20} /> },
     { name: 'Pricing', href: '/admin-panel/pricing', icon: <Tag size={20} /> },
-     { name: 'Support', href: '/admin-panel/support', icon: <HeadphonesIcon size={20} /> },
+    { name: 'Support', href: '/admin-panel/support', icon: <HeadphonesIcon size={20} /> },
     { name: 'Settings', href: '/admin-panel/settings', icon: <Settings size={20} /> },
   ]
 
@@ -72,7 +78,6 @@ export default function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside className="w-64 min-h-screen bg-black border-r border-neutral-900 p-4 hidden md:flex flex-col sticky top-0">
-      {/* Brand Section */}
       <div className="mb-10 px-4 pt-4 text-left">
         <h2 className="text-xl font-bold tracking-tighter text-white uppercase italic leading-none">
           IMPERIUM<span className="text-yellow-500">Crypto</span>
@@ -85,7 +90,6 @@ export default function Sidebar({ role }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation Items */}
       <nav className="flex-1 space-y-1">
         {menus.map((item) => {
           const isActive = pathname === item.href
@@ -108,9 +112,7 @@ export default function Sidebar({ role }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer Section */}
       <div className="mt-auto border-t border-neutral-900 pt-6 space-y-2">
-        {/* User Profile Info */}
         <div className="px-4 py-3 mb-2 rounded-xl bg-neutral-900/50 border border-neutral-800 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-yellow-500 flex items-center justify-center text-black font-bold text-[10px] uppercase shrink-0 leading-none">
             {userData.name ? userData.name.substring(0, 2) : 'IC'}
@@ -125,7 +127,6 @@ export default function Sidebar({ role }: SidebarProps) {
           </div>
         </div>
 
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-neutral-500 hover:bg-red-500/10 hover:text-red-500 transition-all duration-300 group"

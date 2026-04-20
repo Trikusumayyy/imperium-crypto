@@ -1,24 +1,23 @@
 'use client'
 
 import { RefreshCw } from 'lucide-react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation' // Hapus useRouter di sini
 
 interface AdminHeaderProps {
-  onRefresh?: () => void; // Dibuat opsional dengan tanda ?
+  onRefresh?: () => void;
   isLoading?: boolean;
   children?: React.ReactNode;
 }
 
 export default function AdminHeader({ onRefresh, isLoading, children }: AdminHeaderProps) {
   const pathname = usePathname()
-  const router = useRouter()
+  // const router = useRouter() <-- BARIS INI DIHAPUS
 
-  // Fungsi refresh default kalau onRefresh gak dikirim
   const handleRefresh = () => {
     if (onRefresh) {
       onRefresh()
     } else {
-      window.location.reload() // Refresh halaman global jika di layout
+      window.location.reload()
     }
   }
 

@@ -1,6 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { MemberVIP, AdminInternal, Notification } from './types'
-
 export interface Database {
   public: {
     Tables: {
@@ -24,6 +23,16 @@ export interface Database {
         Insert: { id: string; full_name?: string | null; plan?: string | null };
         Update: Partial<{ full_name: string | null; plan: string | null }>;
       };
+      support_config: {
+  Row: { id: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
+  Insert: { id?: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
+  Update: Partial<{ whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string }>;
+};
+support_faqs: {
+  Row: { id: string; question: string; answer: string; created_at: string };
+  Insert: { id?: string; question: string; answer: string };
+  Update: Partial<{ question: string; answer: string }>;
+};
     };
   };
 }

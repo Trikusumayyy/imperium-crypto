@@ -48,7 +48,7 @@ export default function UpgradePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("User tidak ditemukan")
       
-      const res = await fetch('/api/checkout', {
+      const res = await fetch('/api/webhook/midtrans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
