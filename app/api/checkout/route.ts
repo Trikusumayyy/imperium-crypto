@@ -13,11 +13,14 @@ console.log("DEBUG_KEY:", process.env.MIDTRANS_SERVER_KEY?.substring(0, 7) + "..
 
     // Buat parameter transaksi
     // Tips: Simpan userId di dalam order_id supaya nanti mudah di-split di webhook
-    const parameter = {
+  const parameter = {
       transaction_details: {
-        order_id: `ORDER-${Date.now()}-${userId}`, // Contoh: ORDER-1714000-uuid
+        // order_id jadi pendek (maks 50 char)
+        order_id: `IMP-${Date.now()}`, 
         gross_amount: harga,
       },
+      // userId disimpan di sini, aman dan tidak ada batas karakter pendek
+      custom_field1: userId, 
       customer_details: {
         first_name: nama,
         email: email,
