@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const { userId, email, nama, harga, paket } = await request.json();
 console.log("DEBUG_KEY:", process.env.MIDTRANS_SERVER_KEY?.substring(0, 7) + "...");
     const snap = new midtransClient.Snap({
-      isProduction: false,
+      isProduction: true,
       serverKey: process.env.MIDTRANS_SERVER_KEY || '',
       clientKey: process.env.MIDTRANS_CLIENT_KEY || ''
     });
