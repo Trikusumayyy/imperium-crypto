@@ -2,92 +2,78 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 import midtransClient from 'midtrans-client';
 
-interface DataMemberVIPUpdate {
-  status_aktif: string;
-}
-
-interface ProfilesUpdate {
-  plan: string;
-}
-
-interface NotificationInsert {
-  user_id: string | null;
-  title: string;
-  message: string;
-  type: 'signal' | 'success' | 'alert' | 'info';
+interface MidtransStatus {
+  order_id: string;
+  transaction_status: string;
+  fraud_status?: string;
 }
 
 export async function POST(request: Request) {
   try {
-    const rawBody = await request.text();
-    let data: Record<string, unknown> = {};
+    // 1. Ambil JSON langsung
+    const data = await request.json();
+    const transactionId = data.transaction_id as string;
 
-    try {
-      data = JSON.parse(rawBody || '{}');
-    } catch {
-      data = Object.fromEntries(new URLSearchParams(rawBody));
-    }
-
-    const transactionId = typeof data.transaction_id === 'string' ? data.transaction_id : undefined;
     if (!transactionId) {
-      console.error('Webhook Error: transaction_id missing from Midtrans payload', data);
+      console.error('Webhook Error: transaction_id missing', data);
       return NextResponse.json({ error: 'Missing transaction_id' }, { status: 400 });
     }
 
+    // 2. Inisialisasi Midtrans Core API
     const core = new midtransClient.CoreApi({
       isProduction: false,
       serverKey: process.env.MIDTRANS_SERVER_KEY || '',
       clientKey: process.env.MIDTRANS_CLIENT_KEY || ''
     });
 
-    const statusResponse = await core.transaction.status(transactionId);
-    const orderId = statusResponse.order_id;
-    const transactionStatus = statusResponse.transaction_status;
-    const fraudStatus = statusResponse.fraud_status;
+    // 3. Ambil status resmi dari Midtrans (Sangat Aman)
+    const statusResponse = await core.transaction.status(transactionId) as MidtransStatus;
+    const { order_id, transaction_status, fraud_status } = statusResponse;
 
-    const parts = orderId.split('-');
-    const userId = parts[parts.length - 1];
+    // 4. Ambil userId (Format: ORDER-timestamp-userId)
+    const parts = order_id.split('-');
+    const userId: string = parts[parts.length - 1];
 
-    if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
-      if (fraudStatus === 'accept' || !fraudStatus) {
+    console.log(`Processing Webhook for User: ${userId}, Status: ${transaction_status}`);
+
+    // 5. Cek jika pembayaran berhasil
+    if (transaction_status === 'capture' || transaction_status === 'settlement') {
+      if (fraud_status === 'accept' || !fraud_status) {
         
-        // 1. UPDATE data_member_vip
-        const { error: dbError } = await (supabaseServer.from('data_member_vip') as unknown as {
-          update: (values: DataMemberVIPUpdate) => {
-            eq: (col: string, val: string) => Promise<{ error: Error | null }>;
-          };
-        })
+        // Update status_aktif di data_member_vip
+        const { error: err1 } = await supabaseServer
+          .from('data_member_vip')
           .update({ status_aktif: 'aktif' })
           .eq('id_user_auth', userId);
 
-        if (dbError) console.error("DB Error:", dbError.message);
-
-        // 2. UPDATE profiles
-        await (supabaseServer.from('profiles') as unknown as {
-          update: (values: ProfilesUpdate) => {
-            eq: (col: string, val: string) => Promise<{ error: Error | null }>;
-          };
-        })
+        // Update plan di profiles
+        const { error: err2 } = await supabaseServer
+          .from('profiles')
           .update({ plan: 'vip' })
           .eq('id', userId);
 
-        // 3. INSERT notifications
-        await (supabaseServer.from('notifications') as unknown as {
-          insert: (values: NotificationInsert) => Promise<{ error: Error | null }>;
-        })
+        // Kirim Notifikasi
+        await supabaseServer
+          .from('notifications')
           .insert({
             user_id: userId,
             title: 'Pembayaran Sukses!',
             message: 'Selamat! Akun VIP Imperium kamu sudah aktif.',
             type: 'success'
           });
+
+        if (err1 || err2) {
+          console.error("Database Update Error:", err1 || err2);
+        }
       }
     }
 
+    // WAJIB: Kasih respon 200 supaya Midtrans tidak kirim ulang notifikasi terus-menerus
     return NextResponse.json({ status: 'OK' });
+
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("Webhook Error:", message);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error("Webhook Internal Error:", message);
     return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
   }
 }

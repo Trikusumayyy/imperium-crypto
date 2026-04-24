@@ -24,15 +24,15 @@ export interface Database {
         Update: Partial<{ full_name: string | null; plan: string | null }>;
       };
       support_config: {
-  Row: { id: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
-  Insert: { id?: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
-  Update: Partial<{ whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string }>;
-};
-support_faqs: {
-  Row: { id: string; question: string; answer: string; created_at: string };
-  Insert: { id?: string; question: string; answer: string };
-  Update: Partial<{ question: string; answer: string }>;
-};
+        Row: { id: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
+        Insert: { id?: number; whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string };
+        Update: Partial<{ whatsapp_number: string; telegram_link: string; support_email: string; operational_hours: string }>;
+      };
+      support_faqs: {
+        Row: { id: string; question: string; answer: string; created_at: string };
+        Insert: { id?: string; question: string; answer: string };
+        Update: Partial<{ question: string; answer: string }>;
+      };
     };
   };
 }
