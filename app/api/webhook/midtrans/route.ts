@@ -3,14 +3,13 @@ import { supabaseServer } from '@/lib/supabaseServer';
 import midtransClient from 'midtrans-client';
 
 interface MidtransStatus {
-  order_id: string;
   transaction_status: string;
   fraud_status?: string;
+  custom_field1?: string; // Tambahkan ini supaya TS kenal
 }
 
 export async function POST(request: Request) {
   try {
-    // 1. Ambil JSON langsung
     const data = await request.json();
     const transactionId = data.transaction_id as string;
 
@@ -19,42 +18,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing transaction_id' }, { status: 400 });
     }
 
-    // 2. Inisialisasi Midtrans Core API
     const core = new midtransClient.CoreApi({
       isProduction: false,
       serverKey: process.env.MIDTRANS_SERVER_KEY || '',
       clientKey: process.env.MIDTRANS_CLIENT_KEY || ''
     });
 
-    // 3. Ambil status resmi dari Midtrans (Sangat Aman)
+    // Ambil status resmi
     const statusResponse = await core.transaction.status(transactionId) as MidtransStatus;
-    const { order_id, transaction_status, fraud_status } = statusResponse;
+    
+    // Ambil data yang dibutuhkan saja (order_id dihapus karena tidak dipakai)
+    const { transaction_status, fraud_status, custom_field1 } = statusResponse;
 
-    // 4. Ambil userId (Format: ORDER-timestamp-userId)
-    const parts = order_id.split('-');
-    const userId: string = parts[parts.length - 1];
+    const userId = custom_field1;
+
+    if (!userId) {
+      console.error('Webhook Error: User ID (custom_field1) is missing');
+      return NextResponse.json({ error: 'User ID missing' }, { status: 400 });
+    }
 
     console.log(`Processing Webhook for User: ${userId}, Status: ${transaction_status}`);
 
-    // 5. Cek jika pembayaran berhasil
     if (transaction_status === 'capture' || transaction_status === 'settlement') {
       if (fraud_status === 'accept' || !fraud_status) {
         
-        // Update status_aktif di data_member_vip
-        const { error: err1 } = await supabaseServer
-          .from('data_member_vip')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: err1 } = await (supabaseServer.from('data_member_vip') as any)
           .update({ status_aktif: 'aktif' })
           .eq('id_user_auth', userId);
 
-        // Update plan di profiles
-        const { error: err2 } = await supabaseServer
-          .from('profiles')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: err2 } = await (supabaseServer.from('profiles') as any)
           .update({ plan: 'vip' })
           .eq('id', userId);
 
-        // Kirim Notifikasi
-        await supabaseServer
-          .from('notifications')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabaseServer.from('notifications') as any)
           .insert({
             user_id: userId,
             title: 'Pembayaran Sukses!',
@@ -62,13 +61,10 @@ export async function POST(request: Request) {
             type: 'success'
           });
 
-        if (err1 || err2) {
-          console.error("Database Update Error:", err1 || err2);
-        }
+        if (err1 || err2) console.error("Database Update Error:", err1 || err2);
       }
     }
 
-    // WAJIB: Kasih respon 200 supaya Midtrans tidak kirim ulang notifikasi terus-menerus
     return NextResponse.json({ status: 'OK' });
 
   } catch (err: unknown) {
