@@ -4,7 +4,7 @@ import midtransClient from 'midtrans-client';
 export async function POST(request: Request) {
   try {
     const { userId, email, nama, harga, paket } = await request.json();
-
+console.log("DEBUG_KEY:", process.env.MIDTRANS_SERVER_KEY?.substring(0, 7) + "...");
     const snap = new midtransClient.Snap({
       isProduction: false,
       serverKey: process.env.MIDTRANS_SERVER_KEY || '',
